@@ -7,8 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.wapda_monitor.const import DOMAIN
 
@@ -21,20 +22,24 @@ from .const import (
 )
 
 
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(
+    enable_custom_integrations,
+) -> None:
+    """Enable custom integrations for all tests."""
+    return
+
+
 @pytest.fixture
-def mock_config_entry() -> ConfigEntry:
+def mock_config_entry() -> MockConfigEntry:
     """Create a mock config entry."""
-    entry = ConfigEntry(
-        version=1,
-        minor_version=1,
+    return MockConfigEntry(
         domain=DOMAIN,
         title=f"WAPDA {MOCK_REFERENCE}",
         data={"reference": MOCK_REFERENCE},
-        source="user",
         unique_id=MOCK_REFERENCE,
-        options={},
+        version=1,
     )
-    return entry
 
 
 @pytest.fixture

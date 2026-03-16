@@ -95,13 +95,17 @@ class TestSafeRequest:
                 client._safe_request("GET", "http://example.com")
 
     def test_ssl_error(self, client: WapdaClient) -> None:
-        """Test _safe_request wraps SSLError."""
+        """Test _safe_request wraps SSLError.
+
+        Note: requests.SSLError is a subclass of requests.ConnectionError,
+        so it is caught by the ConnectionError handler in _safe_request.
+        """
         with patch.object(
             client.session,
             "request",
             side_effect=requests.exceptions.SSLError(),
         ):
-            with pytest.raises(WapdaConnectionError, match="SSL"):
+            with pytest.raises(WapdaConnectionError, match="Connection failed"):
                 client._safe_request("GET", "http://example.com")
 
     def test_http_429(self, client: WapdaClient) -> None:

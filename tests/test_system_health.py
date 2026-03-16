@@ -7,7 +7,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
+
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.wapda_monitor.const import DOMAIN
 from custom_components.wapda_monitor.system_health import (
@@ -51,19 +52,13 @@ async def test_system_health_multiple_entries(
     """Test system health with multiple entries."""
     mock_config_entry.add_to_hass(hass)
 
-    # Add a second entry
-    from homeassistant.config_entries import ConfigEntry
-
     second_ref = "98765432109876"
-    second_entry = ConfigEntry(
-        version=1,
-        minor_version=1,
+    second_entry = MockConfigEntry(
         domain=DOMAIN,
         title=f"WAPDA {second_ref}",
         data={"reference": second_ref},
-        source="user",
         unique_id=second_ref,
-        options={},
+        version=1,
     )
     second_entry.add_to_hass(hass)
 
