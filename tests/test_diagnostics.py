@@ -15,6 +15,9 @@ from custom_components.wapda_monitor.diagnostics import (
 
 from .const import MOCK_COORDINATOR_DATA, MOCK_REFERENCE
 
+PATCH_CLIENT = "custom_components.wapda_monitor.WapdaClient"
+PATCH_SESSION = "custom_components.wapda_monitor.async_get_clientsession"
+
 
 async def test_config_entry_diagnostics(
     hass: HomeAssistant,
@@ -24,12 +27,13 @@ async def test_config_entry_diagnostics(
     """Test diagnostics returns expected data with redaction."""
     mock_config_entry.add_to_hass(hass)
 
-    with patch(
-        "custom_components.wapda_monitor.WapdaClient",
-        return_value=mock_wapda_client,
-    ), patch(
-        "custom_components.wapda_monitor.coordinator.WapdaDataCoordinator._async_update_data",
-        return_value=MOCK_COORDINATOR_DATA,
+    with (
+        patch(PATCH_SESSION, return_value=MagicMock()),
+        patch(PATCH_CLIENT, return_value=mock_wapda_client),
+        patch(
+            "custom_components.wapda_monitor.coordinator.WapdaDataCoordinator._async_update_data",
+            return_value=MOCK_COORDINATOR_DATA,
+        ),
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
@@ -71,12 +75,13 @@ async def test_config_entry_diagnostics_no_data(
     """Test diagnostics when coordinator has no data."""
     mock_config_entry.add_to_hass(hass)
 
-    with patch(
-        "custom_components.wapda_monitor.WapdaClient",
-        return_value=mock_wapda_client,
-    ), patch(
-        "custom_components.wapda_monitor.coordinator.WapdaDataCoordinator._async_update_data",
-        return_value={},
+    with (
+        patch(PATCH_SESSION, return_value=MagicMock()),
+        patch(PATCH_CLIENT, return_value=mock_wapda_client),
+        patch(
+            "custom_components.wapda_monitor.coordinator.WapdaDataCoordinator._async_update_data",
+            return_value={},
+        ),
     ):
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()

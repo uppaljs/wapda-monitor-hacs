@@ -14,6 +14,9 @@ from custom_components.wapda_monitor.const import DOMAIN
 
 from .const import MOCK_REFERENCE, MOCK_USER_INPUT
 
+PATCH_CLIENT = "custom_components.wapda_monitor.config_flow.WapdaClient"
+PATCH_SESSION = "custom_components.wapda_monitor.config_flow.async_get_clientsession"
+
 
 async def test_user_flow_success(
     hass: HomeAssistant,
@@ -28,9 +31,9 @@ async def test_user_flow_success(
     assert result["step_id"] == "user"
     assert result["errors"] == {}
 
-    with patch(
-        "custom_components.wapda_monitor.config_flow.WapdaClient",
-        return_value=mock_wapda_client,
+    with (
+        patch(PATCH_SESSION, return_value=MagicMock()),
+        patch(PATCH_CLIENT, return_value=mock_wapda_client),
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -92,9 +95,9 @@ async def test_user_flow_cannot_connect(
     mock_client.validate_reference = AsyncMock(
         side_effect=WapdaConnectionError("Cannot connect")
     )
-    with patch(
-        "custom_components.wapda_monitor.config_flow.WapdaClient",
-        return_value=mock_client,
+    with (
+        patch(PATCH_SESSION, return_value=MagicMock()),
+        patch(PATCH_CLIENT, return_value=mock_client),
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -120,9 +123,9 @@ async def test_user_flow_invalid_account(
     mock_client.validate_reference = AsyncMock(
         side_effect=WapdaApiError("No user found")
     )
-    with patch(
-        "custom_components.wapda_monitor.config_flow.WapdaClient",
-        return_value=mock_client,
+    with (
+        patch(PATCH_SESSION, return_value=MagicMock()),
+        patch(PATCH_CLIENT, return_value=mock_client),
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -146,9 +149,9 @@ async def test_user_flow_unknown_error(
     mock_client.validate_reference = AsyncMock(
         side_effect=RuntimeError("Boom")
     )
-    with patch(
-        "custom_components.wapda_monitor.config_flow.WapdaClient",
-        return_value=mock_client,
+    with (
+        patch(PATCH_SESSION, return_value=MagicMock()),
+        patch(PATCH_CLIENT, return_value=mock_client),
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -172,9 +175,9 @@ async def test_user_flow_duplicate_entry(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
-    with patch(
-        "custom_components.wapda_monitor.config_flow.WapdaClient",
-        return_value=mock_wapda_client,
+    with (
+        patch(PATCH_SESSION, return_value=MagicMock()),
+        patch(PATCH_CLIENT, return_value=mock_wapda_client),
     ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
@@ -201,9 +204,9 @@ async def test_reconfigure_flow_success(
     assert result["step_id"] == "reconfigure"
 
     new_reference = "99887766554433"
-    with patch(
-        "custom_components.wapda_monitor.config_flow.WapdaClient",
-        return_value=mock_wapda_client,
+    with (
+        patch(PATCH_SESSION, return_value=MagicMock()),
+        patch(PATCH_CLIENT, return_value=mock_wapda_client),
     ):
         mock_wapda_client.validate_reference = AsyncMock(
             return_value="New Consumer"
