@@ -11,7 +11,6 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
@@ -24,6 +23,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import WapdaConfigEntry
 from .const import CONF_REFERENCE, DATA_BILL, DATA_LOAD, DATA_SCHEDULE, DATA_USER, DOMAIN, MANUFACTURER
 from .coordinator import WapdaDataCoordinator
 
@@ -32,11 +32,11 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: WapdaConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up WAPDA Monitor sensors from a config entry."""
-    coordinator: WapdaDataCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     reference = entry.data[CONF_REFERENCE]
 
     entities: list[SensorEntity] = [

@@ -10,13 +10,13 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import WapdaConfigEntry
 from .const import CONF_REFERENCE, DATA_LOAD, DATA_SCHEDULE, DOMAIN, MANUFACTURER
 from .coordinator import WapdaDataCoordinator
 
@@ -25,11 +25,11 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: WapdaConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up WAPDA Monitor binary sensors."""
-    coordinator: WapdaDataCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     reference = entry.data[CONF_REFERENCE]
 
     entities = [
@@ -153,6 +153,3 @@ class WapdaBinarySensor(
         except Exception:  # noqa: BLE001
             return None
 
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        self.async_write_ha_state()

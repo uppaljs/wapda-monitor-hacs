@@ -226,6 +226,15 @@ The integration mimics a real browser session with rotating User-Agent strings, 
 
 ---
 
+## Removal
+
+1. **Settings** → **Devices & Services** → find **WAPDA Monitor**
+2. Click the **⋮** menu → **Delete**
+3. Restart Home Assistant
+4. (Optional) If installed via HACS: **HACS** → **Integrations** → find **WAPDA Monitor** → **⋮** → **Remove** → restart again
+
+---
+
 ## Troubleshooting
 
 **"Cannot connect to the Roshan Pakistan server"**

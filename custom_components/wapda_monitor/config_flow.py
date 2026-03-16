@@ -9,7 +9,6 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig
 
 from .api import WapdaApiError, WapdaClient, WapdaConnectionError
 from .const import (

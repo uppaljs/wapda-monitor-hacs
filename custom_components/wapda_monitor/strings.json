@@ -14,6 +14,9 @@
         "description": "Enter your 14-digit WAPDA reference number (printed on your electricity bill).",
         "data": {
           "reference": "Reference Number"
+        },
+        "data_description": {
+          "reference": "The 14-digit consumer reference number printed on your WAPDA electricity bill. This is used to fetch feeder status, billing, and schedule data from the Roshan Pakistan portal."
         }
       }
     },
@@ -35,6 +38,11 @@
           "scan_interval_load": "Feeder status interval (seconds)",
           "scan_interval_bill": "Billing data interval (seconds)",
           "scan_interval_schedule": "Schedule interval (seconds)"
+        },
+        "data_description": {
+          "scan_interval_load": "How often to poll real-time feeder status (voltage, current, power). Minimum 60 seconds, maximum 3600 seconds.",
+          "scan_interval_bill": "How often to refresh billing and net metering data. Minimum 3600 seconds (1 hour), maximum 86400 seconds (24 hours).",
+          "scan_interval_schedule": "How often to refresh the load shedding schedule. Minimum 300 seconds (5 minutes), maximum 7200 seconds (2 hours)."
         }
       }
     }

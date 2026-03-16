@@ -9,8 +9,6 @@ import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 
-from custom_components.wapda_monitor.const import DOMAIN
-
 from .const import MOCK_COORDINATOR_DATA, MOCK_REFERENCE
 
 
@@ -33,8 +31,7 @@ async def test_setup_entry(
         await hass.async_block_till_done()
 
     assert mock_config_entry.state is ConfigEntryState.LOADED
-    assert DOMAIN in hass.data
-    assert mock_config_entry.entry_id in hass.data[DOMAIN]
+    assert mock_config_entry.runtime_data is not None
 
 
 async def test_unload_entry(
@@ -61,7 +58,6 @@ async def test_unload_entry(
     await hass.async_block_till_done()
 
     assert mock_config_entry.state is ConfigEntryState.NOT_LOADED
-    assert mock_config_entry.entry_id not in hass.data.get(DOMAIN, {})
 
 
 async def test_setup_entry_connection_error(

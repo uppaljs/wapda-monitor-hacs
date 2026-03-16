@@ -12,15 +12,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .api import WapdaClient
-from .const import DOMAIN, PLATFORMS
+from .const import PLATFORMS
 from .coordinator import WapdaDataCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-type WapdaConfigEntry = ConfigEntry
+type WapdaConfigEntry = ConfigEntry[WapdaDataCoordinator]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: WapdaConfigEntry) -> bool:
     """Set up WAPDA Monitor from a config entry."""
     client = WapdaClient()
     coordinator = WapdaDataCoordinator(hass, entry, client)
@@ -28,7 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Perform the first refresh — if this fails, setup is retried later
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -38,16 +38,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: WapdaConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id, None)
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 async def _async_update_options(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: WapdaConfigEntry
 ) -> None:
     """Reload the integration when options change."""
     await hass.config_entries.async_reload(entry.entry_id)
