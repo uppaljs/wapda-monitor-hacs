@@ -1,4 +1,12 @@
 {
+  "system_health": {
+    "info": {
+      "can_reach_server": "Reach CCMS server",
+      "can_reach_portal": "Reach Roshan Pakistan portal",
+      "configured_accounts": "Configured accounts",
+      "reference_numbers": "Reference numbers"
+    }
+  },
   "config": {
     "step": {
       "user": {
