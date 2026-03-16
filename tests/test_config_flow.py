@@ -40,7 +40,7 @@ async def test_user_flow_success(
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "WAPDA Test Consumer"
     assert result["data"] == {"reference": MOCK_REFERENCE}
-    assert result["unique_id"] == MOCK_REFERENCE
+    assert result["result"].unique_id == MOCK_REFERENCE
 
 
 async def test_user_flow_invalid_reference_format(
