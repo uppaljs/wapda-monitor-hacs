@@ -1,8 +1,16 @@
 # WAPDA Monitor for Home Assistant
 
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
-[![GitHub Release](https://img.shields.io/github/v/release/uppaljs/wapda-monitor-hacs?style=for-the-badge)](https://github.com/uppaljs/wapda-monitor-hacs/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+<p align="center">
+  <img src="custom_components/wapda_monitor/brand/icon@2x.png" alt="WAPDA Monitor" width="200">
+</p>
+
+<p align="center">
+  <a href="https://github.com/hacs/integration"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge" alt="HACS Custom"></a>
+  <a href="https://github.com/uppaljs/wapda-monitor-hacs/releases"><img src="https://img.shields.io/github/v/release/uppaljs/wapda-monitor-hacs?style=for-the-badge" alt="GitHub Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT"></a>
+</p>
+
+> **Disclaimer:** This is an **unofficial**, community-built integration. The author(s) have **no affiliation, association, or relationship** with WAPDA, PITC, any DISCO (IESCO, LESCO, FESCO, MEPCO, GEPCO, PESCO, HESCO, SEPCO, QESCO, TESCO), or the Roshan Pakistan portal. This project is not endorsed, sponsored, or supported by any of these organizations. All trademarks and service names belong to their respective owners. Use at your own risk.
 
 A Home Assistant custom integration that monitors WAPDA electricity feeders in real time using the [Roshan Pakistan](https://roshanpakistan.pk) / CCMS PITC portal.
 
@@ -233,10 +241,19 @@ The integration gets the feeder code from load info first, then falls back to us
 
 ## Notes
 
-- This is an unofficial community integration, not affiliated with PITC, WAPDA, or any DISCO
 - Data accuracy depends on the Roshan Pakistan / CCMS server
 - Some feeders lack AMI metering and will only return billing + customer data
 - Be considerate with polling intervals — aggressive polling may trigger rate limiting on the CCMS server
+
+---
+
+## Disclaimer
+
+This is an **unofficial**, independently developed, community project. It is **not affiliated with, endorsed by, or associated with** WAPDA (Water and Power Development Authority), PITC (Pakistan Information Technology Company), any electricity distribution company (DISCO), or the Roshan Pakistan portal in any way.
+
+The integration accesses publicly available data from the CCMS portal using your own consumer reference number. The author(s) make no guarantees about data accuracy, availability, or continued functionality. Use this integration at your own risk.
+
+All product names, trademarks, and registered trademarks are the property of their respective owners.
 
 ---
 
