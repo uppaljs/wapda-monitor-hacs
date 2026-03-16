@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "WAPDA Monitor",
+        "description": "Enter your 14-digit WAPDA reference number (printed on your electricity bill).",
+        "data": {
+          "reference": "Reference Number"
+        }
+      }
+    },
+    "error": {
+      "invalid_reference": "Invalid reference number — must be exactly 14 digits and belong to a valid WAPDA account.",
+      "cannot_connect": "Cannot connect to the Roshan Pakistan server. Check your internet connection.",
+      "unknown": "An unexpected error occurred. Check Home Assistant logs for details."
+    },
+    "abort": {
+      "already_configured": "This reference number is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polling Intervals",
+        "description": "Adjust how often each data type is refreshed from the Roshan Pakistan server.",
+        "data": {
+          "scan_interval_load": "Feeder status interval (seconds)",
+          "scan_interval_bill": "Billing data interval (seconds)",
+          "scan_interval_schedule": "Schedule interval (seconds)"
+        }
+      }
+    }
+  }
+}
