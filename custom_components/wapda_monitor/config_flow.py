@@ -9,6 +9,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig
 
 from .api import WapdaApiError, WapdaClient, WapdaConnectionError
 from .const import (
@@ -35,6 +36,7 @@ class WapdaMonitorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for WAPDA Monitor."""
 
     VERSION = 1
+    MINOR_VERSION = 1
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -85,46 +87,50 @@ class WapdaMonitorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> WapdaMonitorOptionsFlow:
         """Return the options flow handler."""
-        return WapdaMonitorOptionsFlow(config_entry)
+        return WapdaMonitorOptionsFlow()
 
 
 class WapdaMonitorOptionsFlow(config_entries.OptionsFlow):
     """Handle options (polling intervals) for WAPDA Monitor."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self._config_entry = config_entry
-
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
+        """Manage polling interval options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
+        # Base schema without defaults — we use suggested values instead
+        options_schema = vol.Schema(
+            {
+                vol.Optional(
+                    CONF_SCAN_INTERVAL_LOAD,
+                ): vol.All(vol.Coerce(int), vol.Range(min=60, max=3600)),
+                vol.Optional(
+                    CONF_SCAN_INTERVAL_BILL,
+                ): vol.All(vol.Coerce(int), vol.Range(min=3600, max=86400)),
+                vol.Optional(
+                    CONF_SCAN_INTERVAL_SCHEDULE,
+                ): vol.All(vol.Coerce(int), vol.Range(min=300, max=7200)),
+            }
+        )
+
+        # Pre-fill current values as suggestions (HA recommended pattern)
+        suggested_values = {
+            CONF_SCAN_INTERVAL_LOAD: self.config_entry.options.get(
+                CONF_SCAN_INTERVAL_LOAD, DEFAULT_SCAN_INTERVAL_LOAD
+            ),
+            CONF_SCAN_INTERVAL_BILL: self.config_entry.options.get(
+                CONF_SCAN_INTERVAL_BILL, DEFAULT_SCAN_INTERVAL_BILL
+            ),
+            CONF_SCAN_INTERVAL_SCHEDULE: self.config_entry.options.get(
+                CONF_SCAN_INTERVAL_SCHEDULE, DEFAULT_SCAN_INTERVAL_SCHEDULE
+            ),
+        }
+
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_SCAN_INTERVAL_LOAD,
-                        default=self._config_entry.options.get(
-                            CONF_SCAN_INTERVAL_LOAD,
-                            DEFAULT_SCAN_INTERVAL_LOAD,
-                        ),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=60, max=3600)),
-                    vol.Optional(
-                        CONF_SCAN_INTERVAL_BILL,
-                        default=self._config_entry.options.get(
-                            CONF_SCAN_INTERVAL_BILL,
-                            DEFAULT_SCAN_INTERVAL_BILL,
-                        ),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=3600, max=86400)),
-                    vol.Optional(
-                        CONF_SCAN_INTERVAL_SCHEDULE,
-                        default=self._config_entry.options.get(
-                            CONF_SCAN_INTERVAL_SCHEDULE,
-                            DEFAULT_SCAN_INTERVAL_SCHEDULE,
-                        ),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=300, max=7200)),
-                }
+            data_schema=self.add_suggested_values_to_schema(
+                options_schema, suggested_values
             ),
         )

@@ -72,6 +72,7 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER,
             name=f"{DOMAIN}_{self.reference}",
             update_interval=interval,
+            config_entry=entry,
         )
 
     @property

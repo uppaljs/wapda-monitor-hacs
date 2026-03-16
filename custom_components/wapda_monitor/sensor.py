@@ -18,7 +18,7 @@ from homeassistant.const import (
     UnitOfEnergy,
     UnitOfPower,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -384,10 +384,6 @@ class WapdaSensor(CoordinatorEntity[WapdaDataCoordinator], SensorEntity):
             model="WAPDA Feeder Monitor",
             entry_type=DeviceEntryType.SERVICE,
         )
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        self.async_write_ha_state()
 
     @property
     def native_value(self) -> Any:
