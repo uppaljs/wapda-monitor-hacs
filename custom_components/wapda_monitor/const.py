@@ -1,7 +1,7 @@
 """Constants for the WAPDA Monitor integration."""
 
 DOMAIN = "wapda_monitor"
-MANUFACTURER = "PITC / WAPDA"
+MANUFACTURER = "@uppaljs"
 
 CONF_REFERENCE = "reference"
 CONF_SCAN_INTERVAL_LOAD = "scan_interval_load"

@@ -10,3 +10,4 @@ venv/
 *.log
 .DS_Store
 Thumbs.db
+logo-source.png

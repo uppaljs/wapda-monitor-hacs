@@ -1,10 +1,11 @@
 {
   "domain": "wapda_monitor",
   "name": "WAPDA Monitor",
-  "codeowners": [],
+  "codeowners": ["@uppaljs"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/uppaljs/wapda-monitor-hacs",
+  "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/uppaljs/wapda-monitor-hacs/issues",
   "requirements": ["requests>=2.28.0"],

@@ -379,9 +379,9 @@ class WapdaSensor(CoordinatorEntity[WapdaDataCoordinator], SensorEntity):
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
             identifiers={(DOMAIN, self._reference)},
-            name=f"WAPDA {self._reference}",
+            name=f"WAPDA Feeder Monitor {self._reference}",
             manufacturer=MANUFACTURER,
-            model="Feeder Monitor",
+            model="WAPDA Feeder Monitor",
             entry_type=DeviceEntryType.SERVICE,
         )
 
