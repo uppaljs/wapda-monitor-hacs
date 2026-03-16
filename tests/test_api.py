@@ -1,14 +1,13 @@
-"""Tests for the WAPDA Monitor API client."""
+"""Tests for the WAPDA Monitor async API client."""
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
+import aiohttp
 import pytest
-import requests
 
 from custom_components.wapda_monitor.api import (
-    BASE_URL,
     WapdaApiError,
     WapdaClient,
     WapdaConnectionError,
@@ -16,127 +15,166 @@ from custom_components.wapda_monitor.api import (
 
 
 @pytest.fixture
-def client() -> WapdaClient:
-    """Create a WapdaClient instance."""
-    return WapdaClient(timeout=5)
+def mock_session() -> MagicMock:
+    """Create a mock aiohttp.ClientSession."""
+    return MagicMock(spec=aiohttp.ClientSession)
+
+
+@pytest.fixture
+def client(mock_session: MagicMock) -> WapdaClient:
+    """Create a WapdaClient with a mock session."""
+    return WapdaClient(mock_session, timeout=5)
+
+
+def _make_response(status: int = 200, json_data: dict | None = None) -> MagicMock:
+    """Create a mock aiohttp response as an async context manager."""
+    resp = AsyncMock()
+    resp.status = status
+    resp.json = AsyncMock(return_value=json_data or {})
+    resp.read = AsyncMock(return_value=b"")
+
+    # Make it work as async context manager for session.request / session.get
+    ctx = MagicMock()
+    ctx.__aenter__ = AsyncMock(return_value=resp)
+    ctx.__aexit__ = AsyncMock(return_value=False)
+    return ctx
 
 
 class TestWapdaClientInit:
     """Tests for WapdaClient initialization."""
 
-    def test_creates_session(self, client: WapdaClient) -> None:
-        """Test client creates a requests session."""
-        assert client.session is not None
-        assert isinstance(client.session, requests.Session)
-
     def test_not_initialized_by_default(self, client: WapdaClient) -> None:
         """Test client starts uninitialized."""
         assert client._initialized is False
 
-    def test_default_timeout(self) -> None:
+    def test_default_timeout(self, mock_session: MagicMock) -> None:
         """Test default timeout value."""
-        c = WapdaClient()
-        assert c.timeout == 30
+        c = WapdaClient(mock_session)
+        assert c._timeout.total == 30
 
-    def test_custom_timeout(self) -> None:
+    def test_custom_timeout(self, mock_session: MagicMock) -> None:
         """Test custom timeout value."""
-        c = WapdaClient(timeout=10)
-        assert c.timeout == 10
+        c = WapdaClient(mock_session, timeout=10)
+        assert c._timeout.total == 10
 
 
 class TestEnsureSession:
     """Tests for session initialization."""
 
-    def test_ensure_session_success(self, client: WapdaClient) -> None:
+    async def test_ensure_session_success(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test successful session initialization."""
-        with patch.object(client.session, "get") as mock_get:
-            mock_get.return_value = MagicMock(status_code=200)
-            client._ensure_session()
-            assert client._initialized is True
-            mock_get.assert_called_once()
+        mock_session.get = MagicMock(return_value=_make_response(200))
+        await client._ensure_session()
+        assert client._initialized is True
 
-    def test_ensure_session_already_initialized(self, client: WapdaClient) -> None:
+    async def test_ensure_session_already_initialized(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test session not re-initialized."""
         client._initialized = True
-        with patch.object(client.session, "get") as mock_get:
-            client._ensure_session()
-            mock_get.assert_not_called()
+        await client._ensure_session()
+        mock_session.get.assert_not_called()
 
-    def test_ensure_session_connection_error(self, client: WapdaClient) -> None:
+    async def test_ensure_session_connection_error(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test session init raises on connection error."""
-        with patch.object(
-            client.session, "get", side_effect=requests.exceptions.ConnectionError()
-        ):
-            with pytest.raises(WapdaConnectionError, match="Cannot reach"):
-                client._ensure_session()
+        mock_session.get = MagicMock(
+            side_effect=aiohttp.ClientError("Cannot connect")
+        )
+        with pytest.raises(WapdaConnectionError, match="Cannot reach"):
+            await client._ensure_session()
 
 
-class TestSafeRequest:
-    """Tests for the _safe_request helper."""
+class TestRequest:
+    """Tests for the _request helper."""
 
-    def test_connection_error(self, client: WapdaClient) -> None:
-        """Test _safe_request wraps ConnectionError."""
-        with patch.object(
-            client.session,
-            "request",
-            side_effect=requests.exceptions.ConnectionError(),
-        ):
-            with pytest.raises(WapdaConnectionError, match="Connection failed"):
-                client._safe_request("GET", "http://example.com")
+    async def test_connection_error(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
+        """Test _request wraps ClientConnectorError."""
+        mock_session.request = MagicMock(
+            side_effect=aiohttp.ClientConnectorError(
+                connection_key=MagicMock(), os_error=OSError("Connection refused")
+            )
+        )
+        with pytest.raises(WapdaConnectionError, match="Connection failed"):
+            await client._request("GET", "http://example.com")
 
-    def test_timeout_error(self, client: WapdaClient) -> None:
-        """Test _safe_request wraps Timeout."""
-        with patch.object(
-            client.session,
-            "request",
-            side_effect=requests.exceptions.Timeout(),
-        ):
-            with pytest.raises(WapdaConnectionError, match="timed out"):
-                client._safe_request("GET", "http://example.com")
+    async def test_timeout_error(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
+        """Test _request wraps ServerTimeoutError."""
+        mock_session.request = MagicMock(
+            side_effect=aiohttp.ServerTimeoutError("Timeout")
+        )
+        with pytest.raises(WapdaConnectionError, match="timed out"):
+            await client._request("GET", "http://example.com")
 
-    def test_ssl_error(self, client: WapdaClient) -> None:
-        """Test _safe_request wraps SSLError.
+    async def test_ssl_error(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
+        """Test _request wraps ClientSSLError."""
+        mock_session.request = MagicMock(
+            side_effect=aiohttp.ClientSSLError(
+                connection_key=MagicMock(), os_error=OSError("SSL error")
+            )
+        )
+        with pytest.raises(WapdaConnectionError, match="SSL/TLS error"):
+            await client._request("GET", "http://example.com")
 
-        Note: requests.SSLError is a subclass of requests.ConnectionError,
-        so it is caught by the ConnectionError handler in _safe_request.
-        """
-        with patch.object(
-            client.session,
-            "request",
-            side_effect=requests.exceptions.SSLError(),
-        ):
-            with pytest.raises(WapdaConnectionError, match="Connection failed"):
-                client._safe_request("GET", "http://example.com")
+    async def test_http_429(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
+        """Test _request raises on 429."""
+        mock_session.request = MagicMock(return_value=_make_response(429))
+        with pytest.raises(WapdaApiError, match="Rate limited"):
+            await client._request("GET", "http://example.com/test")
 
-    def test_http_429(self, client: WapdaClient) -> None:
-        """Test _safe_request raises on 429."""
-        mock_resp = MagicMock(status_code=429)
-        with patch.object(client.session, "request", return_value=mock_resp):
-            with pytest.raises(WapdaApiError, match="Rate limited"):
-                client._safe_request("GET", "http://example.com/test")
+    async def test_http_500(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
+        """Test _request raises on 500."""
+        mock_session.request = MagicMock(return_value=_make_response(500))
+        with pytest.raises(WapdaApiError, match="Server error"):
+            await client._request("GET", "http://example.com/test")
 
-    def test_http_500(self, client: WapdaClient) -> None:
-        """Test _safe_request raises on 500."""
-        mock_resp = MagicMock(status_code=500)
-        with patch.object(client.session, "request", return_value=mock_resp):
-            with pytest.raises(WapdaApiError, match="Server error"):
-                client._safe_request("GET", "http://example.com/test")
+    async def test_success(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
+        """Test _request returns parsed JSON on success."""
+        mock_session.request = MagicMock(
+            return_value=_make_response(200, {"key": "value"})
+        )
+        result = await client._request("GET", "http://example.com")
+        assert result == {"key": "value"}
 
-    def test_success(self, client: WapdaClient) -> None:
-        """Test _safe_request returns response on success."""
-        mock_resp = MagicMock(status_code=200)
-        with patch.object(client.session, "request", return_value=mock_resp):
-            resp = client._safe_request("GET", "http://example.com")
-            assert resp.status_code == 200
+    async def test_invalid_json(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
+        """Test _request raises on invalid JSON."""
+        resp = AsyncMock()
+        resp.status = 200
+        resp.json = AsyncMock(side_effect=ValueError("No JSON"))
+        ctx = MagicMock()
+        ctx.__aenter__ = AsyncMock(return_value=resp)
+        ctx.__aexit__ = AsyncMock(return_value=False)
+        mock_session.request = MagicMock(return_value=ctx)
+        with pytest.raises(WapdaApiError, match="Invalid JSON"):
+            await client._request("GET", "http://example.com/test")
 
 
 class TestGetLoadInfo:
     """Tests for get_load_info."""
 
-    def test_success(self, client: WapdaClient) -> None:
+    async def test_success(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test successful load info retrieval."""
         client._initialized = True
-        mock_json = {
+        json_data = {
             "message": "Success",
             "load": [
                 {
@@ -152,143 +190,138 @@ class TestGetLoadInfo:
                 }
             ],
         }
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.json.return_value = mock_json
-
-        with patch.object(client.session, "request", return_value=mock_resp):
-            result = client.get_load_info("01234567890123")
-
+        mock_session.request = MagicMock(
+            return_value=_make_response(200, json_data)
+        )
+        result = await client.get_load_info("01234567890123")
         assert result["feeder_code"] == "FDR001"
         assert result["current_status"] == "ON"
 
-    def test_api_error_message(self, client: WapdaClient) -> None:
+    async def test_api_error_message(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test load info raises on non-success message."""
         client._initialized = True
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.json.return_value = {"message": "Error"}
-
-        with patch.object(client.session, "request", return_value=mock_resp):
-            with pytest.raises(WapdaApiError, match="API error"):
-                client.get_load_info("01234567890123")
-
-    def test_invalid_json(self, client: WapdaClient) -> None:
-        """Test load info raises on invalid JSON."""
-        client._initialized = True
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.json.side_effect = ValueError("No JSON")
-
-        with patch.object(client.session, "request", return_value=mock_resp):
-            with pytest.raises(WapdaApiError, match="invalid JSON"):
-                client.get_load_info("01234567890123")
+        mock_session.request = MagicMock(
+            return_value=_make_response(200, {"message": "Error"})
+        )
+        with pytest.raises(WapdaApiError, match="API error"):
+            await client.get_load_info("01234567890123")
 
 
 class TestGetUserDetails:
     """Tests for get_user_details."""
 
-    def test_success(self, client: WapdaClient) -> None:
+    async def test_success(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test successful user details retrieval."""
         client._initialized = True
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.json.return_value = {
-            "user": {"NAME": "Test User", "TARIFF": "A1"}
-        }
-
-        with patch.object(client.session, "request", return_value=mock_resp):
-            result = client.get_user_details("01234567890123")
-
+        mock_session.request = MagicMock(
+            return_value=_make_response(
+                200, {"user": {"NAME": "Test User", "TARIFF": "A1"}}
+            )
+        )
+        result = await client.get_user_details("01234567890123")
         assert result["NAME"] == "Test User"
 
-    def test_no_user(self, client: WapdaClient) -> None:
+    async def test_no_user(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test user details raises when no user found."""
         client._initialized = True
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.json.return_value = {"user": None}
-
-        with patch.object(client.session, "request", return_value=mock_resp):
-            with pytest.raises(WapdaApiError, match="No user found"):
-                client.get_user_details("01234567890123")
+        mock_session.request = MagicMock(
+            return_value=_make_response(200, {"user": None})
+        )
+        with pytest.raises(WapdaApiError, match="No user found"):
+            await client.get_user_details("01234567890123")
 
 
 class TestGetBillDetails:
     """Tests for get_bill_details."""
 
-    def test_success(self, client: WapdaClient) -> None:
+    async def test_success(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test successful bill retrieval."""
         client._initialized = True
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.json.return_value = {
-            "bill": {"NETAMT": "5000", "DUEDATE": "2025-02-15"}
-        }
-
-        with patch.object(client.session, "request", return_value=mock_resp):
-            result = client.get_bill_details("01234567890123")
-
+        mock_session.request = MagicMock(
+            return_value=_make_response(
+                200, {"bill": {"NETAMT": "5000", "DUEDATE": "2025-02-15"}}
+            )
+        )
+        result = await client.get_bill_details("01234567890123")
         assert result["NETAMT"] == "5000"
 
-    def test_no_bill(self, client: WapdaClient) -> None:
+    async def test_no_bill(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test bill details raises when no billing data."""
         client._initialized = True
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.json.return_value = {"bill": None}
-
-        with patch.object(client.session, "request", return_value=mock_resp):
-            with pytest.raises(WapdaApiError, match="No billing data"):
-                client.get_bill_details("01234567890123")
+        mock_session.request = MagicMock(
+            return_value=_make_response(200, {"bill": None})
+        )
+        with pytest.raises(WapdaApiError, match="No billing data"):
+            await client.get_bill_details("01234567890123")
 
 
 class TestGetSchedule:
     """Tests for get_schedule."""
 
-    def test_success(self, client: WapdaClient) -> None:
+    async def test_success(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test successful schedule retrieval."""
         client._initialized = True
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.json.return_value = {
-            "loaddata": [{"maintenance_sch": {str(i): 0 for i in range(24)}}]
-        }
-
-        with patch.object(client.session, "request", return_value=mock_resp):
-            result = client.get_schedule("FDR001", "01000")
-
+        mock_session.request = MagicMock(
+            return_value=_make_response(
+                200,
+                {"loaddata": [{"maintenance_sch": {str(i): 0 for i in range(24)}}]},
+            )
+        )
+        result = await client.get_schedule("FDR001", "01000")
         assert "maintenance_sch" in result
 
-    def test_no_schedule(self, client: WapdaClient) -> None:
+    async def test_no_schedule(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test schedule raises when no data."""
         client._initialized = True
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.json.return_value = {"loaddata": []}
-
-        with patch.object(client.session, "request", return_value=mock_resp):
-            with pytest.raises(WapdaApiError, match="No schedule data"):
-                client.get_schedule("FDR001", "01000")
+        mock_session.request = MagicMock(
+            return_value=_make_response(200, {"loaddata": []})
+        )
+        with pytest.raises(WapdaApiError, match="No schedule data"):
+            await client.get_schedule("FDR001", "01000")
 
 
 class TestValidateReference:
     """Tests for validate_reference."""
 
-    def test_valid_reference(self, client: WapdaClient) -> None:
+    async def test_valid_reference(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test valid reference returns name."""
         client._initialized = True
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.json.return_value = {"user": {"NAME": "Test Consumer"}}
-
-        with patch.object(client.session, "request", return_value=mock_resp):
-            result = client.validate_reference("01234567890123")
-
+        mock_session.request = MagicMock(
+            return_value=_make_response(
+                200, {"user": {"NAME": "Test Consumer"}}
+            )
+        )
+        result = await client.validate_reference("01234567890123")
         assert result == "Test Consumer"
 
-    def test_invalid_format(self, client: WapdaClient) -> None:
+    async def test_invalid_format(self, client: WapdaClient) -> None:
         """Test invalid reference format raises."""
         with pytest.raises(WapdaApiError, match="14 digits"):
-            client.validate_reference("12345")
+            await client.validate_reference("12345")
 
-    def test_empty_name(self, client: WapdaClient) -> None:
+    async def test_empty_name(
+        self, client: WapdaClient, mock_session: MagicMock
+    ) -> None:
         """Test reference with empty name returns None."""
         client._initialized = True
-        mock_resp = MagicMock(status_code=200)
-        mock_resp.json.return_value = {"user": {"NAME": "  "}}
-
-        with patch.object(client.session, "request", return_value=mock_resp):
-            result = client.validate_reference("01234567890123")
-
+        mock_session.request = MagicMock(
+            return_value=_make_response(200, {"user": {"NAME": "  "}})
+        )
+        result = await client.validate_reference("01234567890123")
         assert result is None

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -88,12 +88,14 @@ async def test_user_flow_cannot_connect(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
+    mock_client = MagicMock()
+    mock_client.validate_reference = AsyncMock(
+        side_effect=WapdaConnectionError("Cannot connect")
+    )
     with patch(
         "custom_components.wapda_monitor.config_flow.WapdaClient",
-    ) as mock_cls:
-        mock_cls.return_value.validate_reference.side_effect = WapdaConnectionError(
-            "Cannot connect"
-        )
+        return_value=mock_client,
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input=MOCK_USER_INPUT,
@@ -114,12 +116,14 @@ async def test_user_flow_invalid_account(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
+    mock_client = MagicMock()
+    mock_client.validate_reference = AsyncMock(
+        side_effect=WapdaApiError("No user found")
+    )
     with patch(
         "custom_components.wapda_monitor.config_flow.WapdaClient",
-    ) as mock_cls:
-        mock_cls.return_value.validate_reference.side_effect = WapdaApiError(
-            "No user found"
-        )
+        return_value=mock_client,
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input=MOCK_USER_INPUT,
@@ -138,10 +142,14 @@ async def test_user_flow_unknown_error(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
+    mock_client = MagicMock()
+    mock_client.validate_reference = AsyncMock(
+        side_effect=RuntimeError("Boom")
+    )
     with patch(
         "custom_components.wapda_monitor.config_flow.WapdaClient",
-    ) as mock_cls:
-        mock_cls.return_value.validate_reference.side_effect = RuntimeError("Boom")
+        return_value=mock_client,
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input=MOCK_USER_INPUT,
@@ -197,7 +205,9 @@ async def test_reconfigure_flow_success(
         "custom_components.wapda_monitor.config_flow.WapdaClient",
         return_value=mock_wapda_client,
     ):
-        mock_wapda_client.validate_reference.return_value = "New Consumer"
+        mock_wapda_client.validate_reference = AsyncMock(
+            return_value="New Consumer"
+        )
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={"reference": new_reference},

@@ -9,6 +9,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import WapdaApiError, WapdaClient, WapdaConnectionError
 from .const import (
@@ -55,11 +56,10 @@ class WapdaMonitorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._abort_if_unique_id_configured()
 
                 # Test the connection by fetching user details
-                client = WapdaClient()
+                session = async_get_clientsession(self.hass)
+                client = WapdaClient(session)
                 try:
-                    name = await self.hass.async_add_executor_job(
-                        client.validate_reference, reference
-                    )
+                    name = await client.validate_reference(reference)
                 except WapdaConnectionError:
                     errors["base"] = "cannot_connect"
                 except WapdaApiError:
@@ -96,11 +96,10 @@ class WapdaMonitorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(reference)
                 self._abort_if_unique_id_configured()
 
-                client = WapdaClient()
+                session = async_get_clientsession(self.hass)
+                client = WapdaClient(session)
                 try:
-                    name = await self.hass.async_add_executor_job(
-                        client.validate_reference, reference
-                    )
+                    name = await client.validate_reference(reference)
                 except WapdaConnectionError:
                     errors["base"] = "cannot_connect"
                 except WapdaApiError:

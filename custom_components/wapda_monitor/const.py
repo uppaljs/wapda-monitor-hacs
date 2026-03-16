@@ -19,4 +19,4 @@ DATA_USER = "user"
 DATA_BILL = "bill"
 DATA_SCHEDULE = "schedule"
 
-PLATFORMS = ["sensor", "binary_sensor"]
+PLATFORMS: list[str] = ["sensor", "binary_sensor"]

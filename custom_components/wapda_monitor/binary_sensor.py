@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
@@ -92,8 +93,8 @@ class WapdaBinarySensor(
         key: str,
         device_class: BinarySensorDeviceClass | None = None,
         category: str,
-        value_fn,
-        attrs_fn=None,
+        value_fn: Callable[[dict[str, Any] | None], bool | None],
+        attrs_fn: Callable[[dict[str, Any] | None], dict[str, Any]] | None = None,
     ) -> None:
         super().__init__(coordinator)
         self._reference = reference

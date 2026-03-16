@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
@@ -372,8 +373,8 @@ class WapdaSensor(CoordinatorEntity[WapdaDataCoordinator], SensorEntity):
         key: str,
         *,
         category: str,
-        value_fn,
-        attrs_fn=None,
+        value_fn: Callable[[dict[str, Any] | None], Any],
+        attrs_fn: Callable[[dict[str, Any] | None], dict[str, Any]] | None = None,
         device_class: SensorDeviceClass | None = None,
         unit: str | None = None,
         state_class: SensorStateClass | None = None,

@@ -43,19 +43,15 @@ def mock_config_entry() -> MockConfigEntry:
 
 
 @pytest.fixture
-def mock_wapda_client() -> Generator[MagicMock, None, None]:
-    """Mock the WapdaClient."""
-    with patch(
-        "custom_components.wapda_monitor.api.WapdaClient",
-        autospec=True,
-    ) as mock_cls:
-        client = mock_cls.return_value
-        client.get_load_info.return_value = MOCK_LOAD_DATA
-        client.get_user_details.return_value = MOCK_USER_DATA
-        client.get_bill_details.return_value = MOCK_BILL_DATA
-        client.get_schedule.return_value = MOCK_SCHEDULE_DATA
-        client.validate_reference.return_value = "Test Consumer"
-        yield client
+def mock_wapda_client() -> MagicMock:
+    """Mock the WapdaClient with async methods."""
+    client = MagicMock()
+    client.get_load_info = AsyncMock(return_value=MOCK_LOAD_DATA)
+    client.get_user_details = AsyncMock(return_value=MOCK_USER_DATA)
+    client.get_bill_details = AsyncMock(return_value=MOCK_BILL_DATA)
+    client.get_schedule = AsyncMock(return_value=MOCK_SCHEDULE_DATA)
+    client.validate_reference = AsyncMock(return_value="Test Consumer")
+    return client
 
 
 @pytest.fixture
