@@ -15,7 +15,7 @@ jobs:
     name: HACS Validation
     steps:
       - name: Checkout repository
-        uses: "actions/checkout@v4"
+        uses: "actions/checkout@v6"
       - name: HACS validation
         uses: "hacs/action@main"
         with:
@@ -26,6 +26,6 @@ jobs:
     name: Hassfest Validation
     steps:
       - name: Checkout repository
-        uses: "actions/checkout@v4"
+        uses: "actions/checkout@v6"
       - name: Hassfest validation
         uses: "home-assistant/actions/hassfest@master"
