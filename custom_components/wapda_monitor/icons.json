@@ -1,0 +1,110 @@
+{
+  "entity": {
+    "sensor": {
+      "feeder_status": {
+        "default": "mdi:transmission-tower"
+      },
+      "feeder_name": {
+        "default": "mdi:transmission-tower"
+      },
+      "grid_name": {
+        "default": "mdi:office-building"
+      },
+      "feeder_voltage": {
+        "default": "mdi:flash"
+      },
+      "feeder_current": {
+        "default": "mdi:current-ac"
+      },
+      "active_power": {
+        "default": "mdi:flash-triangle"
+      },
+      "reactive_power": {
+        "default": "mdi:flash-triangle-outline"
+      },
+      "power_factor": {
+        "default": "mdi:angle-acute"
+      },
+      "feeder_remarks": {
+        "default": "mdi:message-text"
+      },
+      "last_event": {
+        "default": "mdi:history"
+      },
+      "status_duration": {
+        "default": "mdi:timer-sand"
+      },
+      "account_name": {
+        "default": "mdi:account"
+      },
+      "tariff": {
+        "default": "mdi:tag"
+      },
+      "current_bill": {
+        "default": "mdi:currency-rupee"
+      },
+      "net_bill": {
+        "default": "mdi:receipt-text"
+      },
+      "bill_due_date": {
+        "default": "mdi:calendar-clock"
+      },
+      "bill_due_in": {
+        "default": "mdi:calendar-alert"
+      },
+      "monthly_consumption": {
+        "default": "mdi:meter-electric"
+      },
+      "arrears": {
+        "default": "mdi:cash-clock"
+      },
+      "export_off_peak": {
+        "default": "mdi:solar-power"
+      },
+      "export_peak": {
+        "default": "mdi:solar-power-variant"
+      },
+      "import_off_peak": {
+        "default": "mdi:transmission-tower-import"
+      },
+      "import_peak": {
+        "default": "mdi:transmission-tower-export"
+      },
+      "net_metering_balance": {
+        "default": "mdi:scale-balance"
+      },
+      "energy_charges": {
+        "default": "mdi:lightning-bolt"
+      },
+      "fixed_charges": {
+        "default": "mdi:currency-rupee"
+      },
+      "fpa": {
+        "default": "mdi:gas-station"
+      },
+      "gst": {
+        "default": "mdi:percent"
+      },
+      "scheduled_outage_today": {
+        "default": "mdi:calendar-clock"
+      },
+      "next_outage_in": {
+        "default": "mdi:clock-alert"
+      }
+    },
+    "binary_sensor": {
+      "feeder_off": {
+        "default": "mdi:transmission-tower",
+        "state": {
+          "on": "mdi:transmission-tower-off"
+        }
+      },
+      "scheduled_outage_now": {
+        "default": "mdi:calendar-check",
+        "state": {
+          "on": "mdi:calendar-remove"
+        }
+      }
+    }
+  }
+}

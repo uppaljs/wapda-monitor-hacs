@@ -80,6 +80,51 @@ class WapdaMonitorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Handle reconfiguration of the reference number."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            reference = user_input[CONF_REFERENCE].strip()
+
+            if len(reference) != 14 or not reference.isdigit():
+                errors["base"] = "invalid_reference"
+            else:
+                # Check that the new reference isn't already configured
+                await self.async_set_unique_id(reference)
+                self._abort_if_unique_id_configured()
+
+                client = WapdaClient()
+                try:
+                    name = await self.hass.async_add_executor_job(
+                        client.validate_reference, reference
+                    )
+                except WapdaConnectionError:
+                    errors["base"] = "cannot_connect"
+                except WapdaApiError:
+                    errors["base"] = "invalid_reference"
+                except Exception:  # noqa: BLE001
+                    _LOGGER.exception("Unexpected error during WAPDA reconfigure")
+                    errors["base"] = "unknown"
+                else:
+                    return self.async_update_reload_and_abort(
+                        self._get_reconfigure_entry(),
+                        title=f"WAPDA {name or reference}",
+                        data_updates={CONF_REFERENCE: reference},
+                    )
+
+        reconfigure_entry = self._get_reconfigure_entry()
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                STEP_USER_DATA_SCHEMA,
+                {CONF_REFERENCE: reconfigure_entry.data.get(CONF_REFERENCE, "")},
+            ),
+            errors=errors,
+        )
+
     @staticmethod
     @callback
     def async_get_options_flow(

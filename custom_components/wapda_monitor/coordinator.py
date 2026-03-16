@@ -61,6 +61,9 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._cached_bill: dict | None = None
         self._cached_schedule: dict | None = None
 
+        # Track connection state for log-when-unavailable
+        self._was_unavailable = False
+
         interval = timedelta(
             seconds=entry.options.get(
                 CONF_SCAN_INTERVAL_LOAD, DEFAULT_SCAN_INTERVAL_LOAD
@@ -107,11 +110,30 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             result[DATA_LOAD] = await self.hass.async_add_executor_job(
                 self.client.get_load_info, self.reference
             )
+            # Log recovery if previously unavailable
+            if self._was_unavailable:
+                _LOGGER.info(
+                    "WAPDA connection restored for reference %s", self.reference
+                )
+                self._was_unavailable = False
         except WapdaConnectionError as exc:
             if not self._cached_user and not self._cached_bill:
+                if not self._was_unavailable:
+                    _LOGGER.warning(
+                        "WAPDA connection unavailable for reference %s: %s",
+                        self.reference,
+                        exc,
+                    )
+                    self._was_unavailable = True
                 raise UpdateFailed(f"Cannot reach CCMS: {exc}") from exc
             result[DATA_LOAD] = None
-            _LOGGER.warning("WAPDA load info unavailable: %s", exc)
+            if not self._was_unavailable:
+                _LOGGER.warning(
+                    "WAPDA load info unavailable for reference %s: %s",
+                    self.reference,
+                    exc,
+                )
+                self._was_unavailable = True
         except WapdaApiError as exc:
             result[DATA_LOAD] = None
             _LOGGER.debug("WAPDA load info error: %s", exc)

@@ -215,6 +215,36 @@ The integration connects to the PITC CCMS portal (the backend behind Roshan Paki
 
 The integration mimics a real browser session with rotating User-Agent strings, proper Sec-CH-UA headers, and session cookie management to avoid being blocked. All HTTP calls run in a background executor thread so they never block the Home Assistant event loop.
 
+### Data Update Strategy
+
+The integration uses a `DataUpdateCoordinator` with a tiered polling approach. Feeder status (voltage, current, power) is polled at the fastest interval since it changes in real time. Load shedding schedule is refreshed at a medium interval. Billing data is polled least frequently since it typically only changes once a month. User/account details are fetched once on setup and cached permanently. If the CCMS server becomes unreachable, the integration logs a warning once and continues serving cached data. When connectivity is restored, a recovery message is logged. All poll intervals are configurable via the integration options.
+
+---
+
+## Use Cases
+
+**Power outage monitoring** — Get instant notifications when your feeder goes OFF or comes back ON. Track how long outages last and correlate with scheduled maintenance.
+
+**Bill tracking** — Monitor your electricity bill amount, due date, and consumption without opening the Roshan Pakistan app. Set up automations to remind you before the due date.
+
+**Solar/net metering** — Track your export and import units to see if your solar setup is net-positive. The net metering balance sensor shows export minus import at a glance.
+
+**Smart home integration** — Automatically switch to battery/UPS when an outage is detected, pre-charge batteries before a scheduled outage, or adjust thermostat settings based on current electricity rates.
+
+**Load shedding planning** — Know exactly when your area has scheduled outages and plan activities accordingly. The "Next Outage In" sensor tells you how many hours until the next planned outage.
+
+---
+
+## Known Limitations
+
+- **No real-time push** — The integration polls the CCMS server at intervals; there is no WebSocket or push notification support from the portal.
+- **Feeders without AMI metering** — Some older feeders don't have Advanced Metering Infrastructure. For these, real-time voltage/current/power data will be unavailable; only billing and account info will populate.
+- **Server-side rate limiting** — The CCMS portal may temporarily block requests if polled too aggressively. Keep the feeder status interval at 60 seconds or above.
+- **Schedule accuracy** — The load shedding schedule reflects what's published by the DISCO; actual outages may differ from the schedule.
+- **Single portal dependency** — If the Roshan Pakistan / CCMS portal goes down for maintenance, all sensors become unavailable until the portal recovers.
+- **No historical data** — The integration provides current-state sensors only. Use HA's built-in recorder/statistics for historical trends.
+- **Reference number only** — The portal is queried using the 14-digit reference number; there is no username/password authentication.
+
 ---
 
 ## Manual Installation

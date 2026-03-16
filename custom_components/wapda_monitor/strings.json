@@ -18,6 +18,16 @@
         "data_description": {
           "reference": "The 14-digit consumer reference number printed on your WAPDA electricity bill. This is used to fetch feeder status, billing, and schedule data from the Roshan Pakistan portal."
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure WAPDA Monitor",
+        "description": "Update the reference number for this integration entry.",
+        "data": {
+          "reference": "Reference Number"
+        },
+        "data_description": {
+          "reference": "The new 14-digit consumer reference number to use for this entry."
+        }
       }
     },
     "error": {
@@ -45,6 +55,44 @@
           "scan_interval_schedule": "How often to refresh the load shedding schedule. Minimum 300 seconds (5 minutes), maximum 7200 seconds (2 hours)."
         }
       }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "feeder_status": { "name": "Feeder status" },
+      "feeder_name": { "name": "Feeder name" },
+      "grid_name": { "name": "Grid station" },
+      "feeder_voltage": { "name": "Grid voltage" },
+      "feeder_current": { "name": "Grid current" },
+      "active_power": { "name": "Active power" },
+      "reactive_power": { "name": "Reactive power" },
+      "power_factor": { "name": "Power factor" },
+      "feeder_remarks": { "name": "Feeder remarks" },
+      "last_event": { "name": "Last event" },
+      "status_duration": { "name": "Status duration" },
+      "account_name": { "name": "Account name" },
+      "tariff": { "name": "Tariff" },
+      "current_bill": { "name": "Amount due" },
+      "net_bill": { "name": "Net bill" },
+      "bill_due_date": { "name": "Bill due date" },
+      "bill_due_in": { "name": "Bill due in" },
+      "monthly_consumption": { "name": "Monthly consumption" },
+      "arrears": { "name": "Arrears" },
+      "export_off_peak": { "name": "Export off-peak" },
+      "export_peak": { "name": "Export peak" },
+      "import_off_peak": { "name": "Import off-peak" },
+      "import_peak": { "name": "Import peak" },
+      "net_metering_balance": { "name": "Net metering balance" },
+      "energy_charges": { "name": "Energy charges" },
+      "fixed_charges": { "name": "Fixed charges" },
+      "fpa": { "name": "FPA" },
+      "gst": { "name": "GST" },
+      "scheduled_outage_today": { "name": "Scheduled outage today" },
+      "next_outage_in": { "name": "Next outage in" }
+    },
+    "binary_sensor": {
+      "feeder_off": { "name": "Feeder OFF" },
+      "scheduled_outage_now": { "name": "Scheduled outage now" }
     }
   }
 }

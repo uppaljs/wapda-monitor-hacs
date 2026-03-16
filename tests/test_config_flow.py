@@ -177,6 +177,58 @@ async def test_user_flow_duplicate_entry(
     assert result["reason"] == "already_configured"
 
 
+async def test_reconfigure_flow_success(
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_wapda_client: MagicMock,
+    mock_setup_entry,
+) -> None:
+    """Test successful reconfiguration with a new reference number."""
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await mock_config_entry.start_reconfigure_flow(hass)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+
+    new_reference = "99887766554433"
+    with patch(
+        "custom_components.wapda_monitor.config_flow.WapdaClient",
+        return_value=mock_wapda_client,
+    ):
+        mock_wapda_client.validate_reference.return_value = "New Consumer"
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={"reference": new_reference},
+        )
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert mock_config_entry.data["reference"] == new_reference
+
+
+async def test_reconfigure_flow_invalid_reference(
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_setup_entry,
+) -> None:
+    """Test reconfigure rejects invalid reference format."""
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await mock_config_entry.start_reconfigure_flow(hass)
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={"reference": "short"},
+    )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_reference"}
+
+
 async def test_options_flow(
     hass: HomeAssistant,
     mock_config_entry,

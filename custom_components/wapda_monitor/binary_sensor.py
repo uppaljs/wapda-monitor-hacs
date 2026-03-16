@@ -22,6 +22,8 @@ from .coordinator import WapdaDataCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -37,9 +39,6 @@ async def async_setup_entry(
             coordinator,
             reference,
             key="feeder_off",
-            name="Feeder OFF",
-            icon_on="mdi:transmission-tower-off",
-            icon_off="mdi:transmission-tower",
             device_class=BinarySensorDeviceClass.PROBLEM,
             category="load",
             value_fn=lambda d: (
@@ -56,9 +55,6 @@ async def async_setup_entry(
             coordinator,
             reference,
             key="scheduled_outage_now",
-            name="Scheduled Outage Now",
-            icon_on="mdi:calendar-remove",
-            icon_off="mdi:calendar-check",
             device_class=BinarySensorDeviceClass.PROBLEM,
             category="schedule",
             value_fn=_is_scheduled_outage_now,
@@ -94,9 +90,6 @@ class WapdaBinarySensor(
         reference: str,
         *,
         key: str,
-        name: str,
-        icon_on: str,
-        icon_off: str,
         device_class: BinarySensorDeviceClass | None = None,
         category: str,
         value_fn,
@@ -108,10 +101,8 @@ class WapdaBinarySensor(
         self._category = category
         self._value_fn = value_fn
         self._attrs_fn = attrs_fn
-        self._icon_on = icon_on
-        self._icon_off = icon_off
 
-        self._attr_name = name
+        self._attr_translation_key = key
         self._attr_unique_id = f"wapda_{reference}_{key}"
         self._attr_device_class = device_class
 
@@ -137,10 +128,6 @@ class WapdaBinarySensor(
             return None
 
     @property
-    def icon(self) -> str:
-        return self._icon_on if self.is_on else self._icon_off
-
-    @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         if self._attrs_fn is None:
             return None
@@ -152,4 +139,3 @@ class WapdaBinarySensor(
             return self._attrs_fn(category_data)
         except Exception:  # noqa: BLE001
             return None
-
