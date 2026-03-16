@@ -3,12 +3,12 @@
   "name": "WAPDA Monitor",
   "codeowners": ["@uppaljs"],
   "config_flow": true,
-  "dependencies": ["system_health"],
+  "dependencies": ["diagnostics", "system_health"],
   "documentation": "https://github.com/uppaljs/wapda-monitor-hacs",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/uppaljs/wapda-monitor-hacs/issues",
   "loggers": ["requests", "urllib3"],
   "requirements": ["requests>=2.28.0"],
-  "version": "1.7.0"
+  "version": "1.8.0"
 }
