@@ -53,16 +53,16 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._entry = entry
 
         # Separate tick counters for slow-polled data
-        self._bill_ticks = 0
-        self._schedule_ticks = 0
+        self._bill_ticks: int = 0
+        self._schedule_ticks: int = 0
 
         # Cached slow data (kept across fast-poll cycles)
-        self._cached_user: dict | None = None
-        self._cached_bill: dict | None = None
-        self._cached_schedule: dict | None = None
+        self._cached_user: dict[str, Any] | None = None
+        self._cached_bill: dict[str, Any] | None = None
+        self._cached_schedule: dict[str, Any] | None = None
 
         # Track connection state for log-when-unavailable
-        self._was_unavailable = False
+        self._was_unavailable: bool = False
 
         interval = timedelta(
             seconds=entry.options.get(
@@ -107,9 +107,7 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # --- Load info (every tick) ---
         try:
-            result[DATA_LOAD] = await self.hass.async_add_executor_job(
-                self.client.get_load_info, self.reference
-            )
+            result[DATA_LOAD] = await self.client.get_load_info(self.reference)
             # Log recovery if previously unavailable
             if self._was_unavailable:
                 _LOGGER.info(
@@ -141,8 +139,8 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # --- User details (fetch once, cache forever) ---
         if self._cached_user is None:
             try:
-                self._cached_user = await self.hass.async_add_executor_job(
-                    self.client.get_user_details, self.reference
+                self._cached_user = await self.client.get_user_details(
+                    self.reference
                 )
             except WapdaApiError as exc:
                 _LOGGER.warning("WAPDA user details failed: %s", exc)
@@ -154,8 +152,8 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._cached_bill is None or self._bill_ticks >= bill_every_n:
             self._bill_ticks = 0
             try:
-                self._cached_bill = await self.hass.async_add_executor_job(
-                    self.client.get_bill_details, self.reference
+                self._cached_bill = await self.client.get_bill_details(
+                    self.reference
                 )
             except WapdaApiError as exc:
                 _LOGGER.warning("WAPDA bill details failed: %s", exc)
@@ -170,10 +168,8 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if feeder_code:
                 disco_code = self.reference[2:4] + "000"
                 try:
-                    self._cached_schedule = (
-                        await self.hass.async_add_executor_job(
-                            self.client.get_schedule, feeder_code, disco_code
-                        )
+                    self._cached_schedule = await self.client.get_schedule(
+                        feeder_code, disco_code
                     )
                 except WapdaApiError as exc:
                     _LOGGER.warning("WAPDA schedule failed: %s", exc)
@@ -182,12 +178,12 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return result
 
     @staticmethod
-    def _resolve_feeder_code(data: dict) -> str | None:
+    def _resolve_feeder_code(data: dict[str, Any]) -> str | None:
         """Get feeder_code from load info or user details."""
         load = data.get(DATA_LOAD)
         if load and load.get("feeder_code"):
-            return load["feeder_code"]
+            return str(load["feeder_code"])
         user = data.get(DATA_USER)
         if user and user.get("FEEDERCD", "").strip():
-            return user["FEEDERCD"].strip()
+            return str(user["FEEDERCD"]).strip()
         return None

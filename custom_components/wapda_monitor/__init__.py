@@ -10,6 +10,7 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import WapdaClient
 from .const import PLATFORMS
@@ -22,7 +23,8 @@ type WapdaConfigEntry = ConfigEntry[WapdaDataCoordinator]
 
 async def async_setup_entry(hass: HomeAssistant, entry: WapdaConfigEntry) -> bool:
     """Set up WAPDA Monitor from a config entry."""
-    client = WapdaClient()
+    session = async_get_clientsession(hass)
+    client = WapdaClient(session)
     coordinator = WapdaDataCoordinator(hass, entry, client)
 
     # Perform the first refresh — if this fails, setup is retried later
