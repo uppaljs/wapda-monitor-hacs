@@ -95,6 +95,10 @@
     "binary_sensor": {
       "feeder_off": { "name": "Feeder OFF" },
       "scheduled_outage_now": { "name": "Scheduled outage now" }
+    },
+    "calendar": {
+      "scheduled_outages": { "name": "Scheduled outages" },
+      "actual_outages": { "name": "Actual outages" }
     }
   }
 }

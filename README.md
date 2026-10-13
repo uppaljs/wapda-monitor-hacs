@@ -30,7 +30,7 @@ Then restart Home Assistant.
 
 ## What You Get
 
-Each reference number creates a **device** with 30+ entities:
+Each reference number creates a **device** with 30+ entities and two outage calendars:
 
 ### Real-Time Feeder
 
@@ -72,6 +72,18 @@ Each reference number creates a **device** with 30+ entities:
 |--------|-------------|
 | Scheduled Outage Today | Total scheduled outage hours for today |
 | Next Outage In | Hours until the next scheduled outage slot |
+| Next Outage Start / Outage End | Timestamp sensors for the next scheduled outage |
+
+### Outage Calendars
+
+The integration also creates two native Home Assistant calendars:
+
+| Calendar | Events |
+|----------|--------|
+| Scheduled Outages | Forecast outage windows from the published CCMS schedule (today and tomorrow) |
+| Actual Outages | Completed OFF-to-ON feeder transitions and the current outage when the feeder is reported OFF |
+
+Use these calendars in Home Assistant's calendar dashboard, `calendar.get_events`, or calendar event automations. Calendar data comes from the integration's existing cached coordinator data; adding the calendars does not add portal requests. Actual history is limited to the event log returned by the portal, and scheduled events are forecasts.
 
 ### Binary Sensors
 
@@ -102,7 +114,7 @@ Works with any electricity distribution company that uses the PITC/Roshan Pakist
 1. **Settings** → **Devices & Services** → **Add Integration**
 2. Search for **WAPDA Monitor**
 3. Enter your **14-digit reference number** (from your electricity bill)
-4. Done — the integration validates against the Roshan Pakistan server and creates all sensors
+4. Done — the integration validates against the Roshan Pakistan server and creates its sensors and outage calendars
 
 Add multiple accounts by adding the integration again with a different reference number.
 
@@ -115,6 +127,10 @@ Click **Configure** on the integration card to adjust:
 | Feeder status | 5 min | 1 min – 1 hr |
 | Billing | 12 hr | 1 hr – 24 hr |
 | Schedule | 15 min | 5 min – 2 hr |
+
+### Troubleshooting: schedule unavailable
+
+The portal may omit or return `null` for a feeder code. The integration tries the code from live load data first, then the customer-details response. If neither contains a usable code, it skips only the schedule request rather than failing the coordinator refresh; schedule sensors and the Scheduled Outages calendar may remain empty until the portal provides that code. Please do not include your full reference number or personal account data in issue reports.
 
 ---
 

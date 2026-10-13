@@ -151,6 +151,22 @@ class TestCoordinatorUpdate:
         assert data[DATA_USER] is None
         assert coordinator._cached_user is None
 
+    async def test_null_feeder_code_skips_schedule_without_failing(
+        self,
+        coordinator: WapdaDataCoordinator,
+        mock_wapda_client: MagicMock,
+    ) -> None:
+        """A null IESCO feeder code must not fail the full coordinator refresh."""
+        mock_wapda_client.get_load_info.return_value = {"feeder_code": None}
+        mock_wapda_client.get_user_details.return_value = {"FEEDERCD": None}
+
+        data = await coordinator._async_update_data()
+
+        assert data[DATA_LOAD] == {"feeder_code": None}
+        assert data[DATA_USER] == {"FEEDERCD": None}
+        assert data[DATA_SCHEDULE] is None
+        mock_wapda_client.get_schedule.assert_not_called()
+
 
 class TestResolveFeederCode:
     """Tests for _resolve_feeder_code static method."""
@@ -180,3 +196,20 @@ class TestResolveFeederCode:
             DATA_USER: {"FEEDERCD": "  "},
         }
         assert WapdaDataCoordinator._resolve_feeder_code(data) is None
+
+    @pytest.mark.parametrize("bad_code", [None, "", "  ", [], {}, True])
+    def test_invalid_user_feeder_code_is_ignored(self, bad_code) -> None:
+        """Null or malformed portal fields must not crash coordinator refresh."""
+        data = {DATA_LOAD: None, DATA_USER: {"FEEDERCD": bad_code}}
+        assert WapdaDataCoordinator._resolve_feeder_code(data) is None
+
+    def test_falls_back_to_user_code_when_load_code_is_missing(self) -> None:
+        data = {
+            DATA_LOAD: {"feeder_code": None},
+            DATA_USER: {"FEEDERCD": " FDR002 "},
+        }
+        assert WapdaDataCoordinator._resolve_feeder_code(data) == "FDR002"
+
+    def test_numeric_user_feeder_code_is_normalized(self) -> None:
+        data = {DATA_LOAD: None, DATA_USER: {"FEEDERCD": 50424}}
+        assert WapdaDataCoordinator._resolve_feeder_code(data) == "50424"

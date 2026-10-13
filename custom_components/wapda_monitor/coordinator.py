@@ -171,9 +171,24 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _resolve_feeder_code(data: dict[str, Any]) -> str | None:
         """Get feeder_code from load info or user details."""
         load = data.get(DATA_LOAD)
-        if load and load.get("feeder_code"):
-            return str(load["feeder_code"])
+        if isinstance(load, dict):
+            feeder_code = WapdaDataCoordinator._normalize_feeder_code(
+                load.get("feeder_code")
+            )
+            if feeder_code:
+                return feeder_code
+
         user = data.get(DATA_USER)
-        if user and user.get("FEEDERCD", "").strip():
-            return str(user["FEEDERCD"]).strip()
+        if isinstance(user, dict):
+            return WapdaDataCoordinator._normalize_feeder_code(user.get("FEEDERCD"))
         return None
+
+    @staticmethod
+    def _normalize_feeder_code(value: Any) -> str | None:
+        """Return a usable feeder code without assuming portal fields are strings."""
+        if value is None or isinstance(value, bool):
+            return None
+        if not isinstance(value, (str, int)):
+            return None
+        feeder_code = str(value).strip()
+        return feeder_code or None
