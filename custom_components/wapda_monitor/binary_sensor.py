@@ -16,9 +16,11 @@ from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from . import WapdaConfigEntry
 from .const import CONF_REFERENCE, DATA_LOAD, DATA_SCHEDULE, DOMAIN, MANUFACTURER
+from . import schedule as sched
 from .coordinator import WapdaDataCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,15 +69,7 @@ async def async_setup_entry(
 
 def _is_scheduled_outage_now(schedule: dict | None) -> bool | None:
     """Check if there is a scheduled outage for the current hour."""
-    if not schedule:
-        return None
-    maint = schedule.get("maintenance_sch", [])
-    if not maint or not isinstance(maint, list):
-        return None
-    now_hour = datetime.now().hour
-    if now_hour < len(maint):
-        return maint[now_hour] > 0
-    return None
+    return sched.is_outage_now(schedule, dt_util.now())
 
 
 class WapdaBinarySensor(
@@ -111,7 +105,7 @@ class WapdaBinarySensor(
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
             identifiers={(DOMAIN, self._reference)},
-            name=f"WAPDA Feeder Monitor {self._reference}",
+            name=f"WAPDA Feeder Monitor …{self._reference[-4:]}",
             manufacturer=MANUFACTURER,
             model="WAPDA Feeder Monitor",
             entry_type=DeviceEntryType.SERVICE,

@@ -68,7 +68,7 @@ class WapdaMonitorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     _LOGGER.exception("Unexpected error during WAPDA validation")
                     errors["base"] = "unknown"
                 else:
-                    title = f"WAPDA {name or reference}"
+                    title = f"WAPDA …{reference[-4:]}"
                     return self.async_create_entry(
                         title=title,
                         data={CONF_REFERENCE: reference},
@@ -110,7 +110,7 @@ class WapdaMonitorConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 else:
                     return self.async_update_reload_and_abort(
                         self._get_reconfigure_entry(),
-                        title=f"WAPDA {name or reference}",
+                        title=f"WAPDA …{reference[-4:]}",
                         data_updates={CONF_REFERENCE: reference},
                     )
 

@@ -92,3 +92,44 @@ async def test_config_entry_diagnostics_no_data(
     assert result["data"]["user"] is None
     assert result["data"]["bill"] is None
     assert result["data"]["schedule"] is None
+
+
+def test_redaction_covers_real_ccms_keys() -> None:
+    """Keys seen in live CCMS bill/user payloads must never leak."""
+    from custom_components.wapda_monitor.diagnostics import REDACTED, _redact
+
+    payload = {
+        "basicInfo": {
+            "consumerName": "X", "consumerAddress1": "Y", "consumerContactNo": "Z",
+            "owner_cnic": "1", "consumerEmail": "e", "refNo": "r", "ckey": "k",
+            "appNo": "a", "barCodeMsg": "b", "feederName": "FEEDER", "currAmntDue": "100",
+        },
+        "metersInfo": [{"mtrNo": "E 123", "mtrKwhConsump": 5}],
+        "msn": "329",
+    }
+    out = _redact(payload)
+    assert out["basicInfo"]["feederName"] == "FEEDER"
+    assert out["basicInfo"]["currAmntDue"] == "100"
+    assert out["metersInfo"][0]["mtrKwhConsump"] == 5
+    for k in ("consumerName", "consumerAddress1", "consumerContactNo", "owner_cnic",
+              "consumerEmail", "refNo", "ckey", "appNo", "barCodeMsg"):
+        assert out["basicInfo"][k] == REDACTED, k
+    assert out["metersInfo"][0]["mtrNo"] == REDACTED and out["msn"] == REDACTED
+
+
+def test_redaction_covers_user_endpoint_keys() -> None:
+    """Keys of /api/details/user, found leaking in a real diagnostics download."""
+    from custom_components.wapda_monitor.diagnostics import REDACTED, _redact
+
+    user = {
+        "REFNO": "1", "NAME": "n", "FNAME": "f", "ADDR1": "a1", "ADDR2": "a2",
+        "CONTACTNO": "c", "NICNO": "id", "GPSLONG": "74.1", "GPSLATI": "31.5",
+        "CONDATE": "d", "TARIFF": "03", "SLOAD": "10", "FEEDERCD": "050424",
+        "CURSTATUS": "1",
+    }
+    out = _redact(user)
+    for k in ("REFNO", "NAME", "FNAME", "ADDR1", "ADDR2", "CONTACTNO", "NICNO",
+              "GPSLONG", "GPSLATI"):
+        assert out[k] == REDACTED, k
+    for k in ("TARIFF", "SLOAD", "FEEDERCD", "CURSTATUS", "CONDATE"):
+        assert out[k] == user[k], k

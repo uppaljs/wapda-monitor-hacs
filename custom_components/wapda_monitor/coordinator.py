@@ -73,7 +73,7 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}_{self.reference}",
+            name=f"{DOMAIN}_{entry.entry_id}",
             update_interval=interval,
             config_entry=entry,
         )
@@ -110,27 +110,17 @@ class WapdaDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             result[DATA_LOAD] = await self.client.get_load_info(self.reference)
             # Log recovery if previously unavailable
             if self._was_unavailable:
-                _LOGGER.info(
-                    "WAPDA connection restored for reference %s", self.reference
-                )
+                _LOGGER.info("WAPDA connection restored")
                 self._was_unavailable = False
         except WapdaConnectionError as exc:
             if not self._cached_user and not self._cached_bill:
                 if not self._was_unavailable:
-                    _LOGGER.warning(
-                        "WAPDA connection unavailable for reference %s: %s",
-                        self.reference,
-                        exc,
-                    )
+                    _LOGGER.warning("WAPDA connection unavailable: %s", exc)
                     self._was_unavailable = True
                 raise UpdateFailed(f"Cannot reach CCMS: {exc}") from exc
             result[DATA_LOAD] = None
             if not self._was_unavailable:
-                _LOGGER.warning(
-                    "WAPDA load info unavailable for reference %s: %s",
-                    self.reference,
-                    exc,
-                )
+                _LOGGER.warning("WAPDA load info unavailable: %s", exc)
                 self._was_unavailable = True
         except WapdaApiError as exc:
             result[DATA_LOAD] = None

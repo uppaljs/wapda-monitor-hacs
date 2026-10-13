@@ -90,6 +90,12 @@
       },
       "next_outage_in": {
         "default": "mdi:clock-alert"
+      },
+      "next_outage_start": {
+        "default": "mdi:calendar-clock"
+      },
+      "next_outage_end": {
+        "default": "mdi:calendar-check"
       }
     },
     "binary_sensor": {

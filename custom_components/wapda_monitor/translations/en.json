@@ -88,7 +88,9 @@
       "fpa": { "name": "FPA" },
       "gst": { "name": "GST" },
       "scheduled_outage_today": { "name": "Scheduled outage today" },
-      "next_outage_in": { "name": "Next outage in" }
+      "next_outage_in": { "name": "Next outage in" },
+      "next_outage_start": { "name": "Next outage start" },
+      "next_outage_end": { "name": "Outage end" }
     },
     "binary_sensor": {
       "feeder_off": { "name": "Feeder OFF" },

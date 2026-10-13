@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -24,9 +24,11 @@ from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from . import WapdaConfigEntry
 from .const import CONF_REFERENCE, DATA_BILL, DATA_LOAD, DATA_SCHEDULE, DATA_USER, DOMAIN, MANUFACTURER
+from . import schedule as sched
 from .coordinator import WapdaDataCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -188,11 +190,20 @@ async def async_setup_entry(
         WapdaSensor(coordinator, reference, "scheduled_outage_today",
                     category="schedule",
                     unit="hours",
-                    value_fn=_scheduled_outage_today_value),
+                    value_fn=_scheduled_outage_today_value,
+                    attrs_fn=_schedule_attrs),
         WapdaSensor(coordinator, reference, "next_outage_in",
                     category="schedule",
                     unit="hours",
                     value_fn=_next_outage_in_value),
+        WapdaSensor(coordinator, reference, "next_outage_start",
+                    category="schedule",
+                    device_class=SensorDeviceClass.TIMESTAMP,
+                    value_fn=_next_outage_start_value),
+        WapdaSensor(coordinator, reference, "next_outage_end",
+                    category="schedule",
+                    device_class=SensorDeviceClass.TIMESTAMP,
+                    value_fn=_next_outage_end_value),
     ]
 
     async_add_entities(entities)
@@ -253,7 +264,8 @@ def _last_event_value(load: dict | None) -> str | None:
     events = load.get("event_logs", [])
     if not events:
         return None
-    ev = events[0]
+    # The portal lists events oldest-first; pick the newest by timestamp.
+    ev = max(events, key=lambda e: str(e.get("event_time", "")))
     return f"{ev.get('event', '')} at {ev.get('event_time', '')}"
 
 
@@ -332,29 +344,53 @@ def _net_metering_balance_value(bill_data: dict | None) -> float | None:
 
 
 def _scheduled_outage_today_value(schedule: dict | None) -> float | None:
-    """Total scheduled outage hours for today."""
-    if not schedule:
-        return None
-    maint = schedule.get("maintenance_sch", [])
-    if not maint or not isinstance(maint, list):
-        return None
-    total_mins = sum(m for m in maint if isinstance(m, (int, float)))
-    return round(total_mins / 60, 1)
+    """Total scheduled outage hours for today (maintenance_data + maintenance_sch)."""
+    return sched.scheduled_hours_today(schedule, dt_util.now())
 
 
 def _next_outage_in_value(schedule: dict | None) -> float | None:
-    """Hours until next scheduled outage slot (from maintenance_sch)."""
+    """Hours until the next scheduled outage starts (1 decimal)."""
+    now = dt_util.now()
+    nxt = sched.next_window(schedule, now)
+    if nxt is None:
+        return None
+    return round((nxt[0] - now).total_seconds() / 3600, 1)
+
+
+def _next_outage_start_value(schedule: dict | None) -> datetime | None:
+    nxt = sched.next_window(schedule, dt_util.now())
+    return nxt[0] if nxt else None
+
+
+def _next_outage_end_value(schedule: dict | None) -> datetime | None:
+    now = dt_util.now()
+    cur = sched.current_window(schedule, now)
+    if cur:
+        return cur[1]
+    nxt = sched.next_window(schedule, now)
+    return nxt[1] if nxt else None
+
+
+def _schedule_attrs(schedule: dict | None) -> dict[str, Any]:
+    """Outage windows for today+tomorrow as ISO strings, for cards/templates."""
     if not schedule:
-        return None
-    maint = schedule.get("maintenance_sch", [])
-    if not maint or not isinstance(maint, list):
-        return None
-    now_hour = datetime.now().hour
-    for offset in range(1, 25):
-        idx = (now_hour + offset) % 24
-        if idx < len(maint) and maint[idx] > 0:
-            return offset
-    return None
+        return {}
+    now = dt_util.now()
+    wins = sched.outage_windows(schedule, now)
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = midnight + timedelta(days=1)
+
+    def fmt(w: tuple[datetime, datetime]) -> dict[str, str]:
+        return {"start": w[0].isoformat(), "end": w[1].isoformat()}
+
+    return {
+        "windows_today": [fmt(w) for w in wins if w[0] < tomorrow],
+        "windows_tomorrow": [fmt(w) for w in wins if w[0] >= tomorrow],
+        "tomorrow_published": sched.day_slots(
+            schedule, (midnight + timedelta(days=1)).date(), now.date()
+        )
+        is not None,
+    }
 
 
 # ====================================================================== #
@@ -400,7 +436,7 @@ class WapdaSensor(CoordinatorEntity[WapdaDataCoordinator], SensorEntity):
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
             identifiers={(DOMAIN, self._reference)},
-            name=f"WAPDA Feeder Monitor {self._reference}",
+            name=f"WAPDA Feeder Monitor …{self._reference[-4:]}",
             manufacturer=MANUFACTURER,
             model="WAPDA Feeder Monitor",
             entry_type=DeviceEntryType.SERVICE,
